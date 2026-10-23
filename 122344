@@ -1,0 +1,140 @@
+-- โหลด UI Library Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:Window({
+   Name = "🔥 OP GOD HUB | Hitbox & Movement 🔥",
+   LoadingTitle = "กำลังโหลดระบบโหด...",
+   LoadingSubtitle = "โดย AI Assistant",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false,
+})
+
+-- Services
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
+local Lighting = game:GetService("Lighting")
+local LocalPlayer = Players.LocalPlayer
+
+-- Tabs
+local CombatTab = Window:CreateTab("🎯 ต่อสู้ (Hitbox/ESP)", 4483362458)
+local PlayerTab = Window:CreateTab("⚡ เคลื่อนไหว (Movement)", 4483362458)
+local VisualTab = Window:CreateTab("👀 แสดงผล (Visuals)", 4483362458)
+local MiscTab = Window:CreateTab("⚙️ ประสิทธิภาพ (FPS/Misc)", 4483362458)
+
+--------------------------------------------------
+-- 1. ระบบ Hitbox Lock / Expander (สำหรับทุกคน)
+--------------------------------------------------
+CombatTab:CreateSection("ระบบขยาย Hitbox ล็อคเป้า")
+
+local hitboxSize = 10
+local hitboxEnabled = false
+
+CombatTab:CreateToggle({
+   Name = "เปิดใช้งาน Hitbox ใหญ่ (ล็อคเป้าเสียง่าย)",
+   CurrentValue = false,
+   Flag = "HitboxToggle",
+   Callback = function(Value)
+      hitboxEnabled = Value
+   end,
+})
+
+CombatTab:CreateSlider({
+   Name = "ขนาด Hitbox",
+   Range = {2, 50},
+   Increment = 1,
+   CurrentValue = 10,
+   Flag = "HitboxSize",
+   Callback = function(Value)
+      hitboxSize = Value
+   end,
+})
+
+-- ลูปปรับขนาด Hitbox สำหรับผู้เล่นทุกคน
+RunService.RenderStepped:Connect(function()
+   for _, player in pairs(Players:GetPlayers()) do
+      if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+         pcall(function()
+            local hrp = player.Character.HumanoidRootPart
+            if hitboxEnabled then
+               hrp.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+               hrp.Transparency = 0.7
+               hrp.Color = Color3.fromRGB(255, 0, 0)
+               hrp.Material = Enum.Material.Neon
+               hrp.CanCollide = false
+            else
+               hrp.Size = Vector3.new(2, 2, 1)
+               hrp.Transparency = 1
+            end
+         end)
+      end
+   end
+end)
+
+--------------------------------------------------
+-- 2. ระบบ ESP (บอก HP, ชื่อ, ระยะทาง)
+--------------------------------------------------
+CombatTab:CreateSection("ระบบมองทะลุ & ข้อมูล (ESP)")
+
+local espEnabled = false
+local espFolder = Instance.new("Folder", Workspace)
+espFolder.Name = "ESP_Folder"
+
+CombatTab:CreateToggle({
+   Name = "เปิด ESP (แสดง HP / ชื่อ / ระยะทาง)",
+   CurrentValue = false,
+   Flag = "ESPToggle",
+   Callback = function(Value)
+      espEnabled = Value
+      if not Value then
+         espFolder:ClearAllChildren()
+      end
+   end,
+})
+
+-- ลูปอัปเดตป้าย ESP
+RunService.RenderStepped:Connect(function()
+   if not espEnabled then return end
+   
+   for _, player in pairs(Players:GetPlayers()) do
+      if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Humanoid") and player.Character:FindFirstChild("Head") then
+         local char = player.Character
+         local head = char.Head
+         local hum = char.Humanoid
+         local hrp = char:FindFirstChild("HumanoidRootPart")
+         
+         if hum.Health > 0 and hrp then
+            local distance = math.floor((LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - hrp.Position).Magnitude) or 0)
+            
+            local bg = espFolder:FindFirstChild("ESP_" .. player.Name)
+            if not bg then
+               bg = Instance.new("BillboardGui")
+               bg.Name = "ESP_" .. player.Name
+               bg.AlwaysOnTop = true
+               bg.Size = UDim2.new(0, 200, 0, 50)
+               bg.StudsOffset = Vector3.new(0, 3, 0)
+               
+               local textLabel = Instance.new("TextLabel", bg)
+               textLabel.Name = "Info"
+               textLabel.Size = UDim2.new(1, 0, 1, 0)
+               textLabel.BackgroundTransparency = 1
+               textLabel.TextColor3 = Color3.fromRGB(0, 255, 127)
+               textLabel.TextStrokeTransparency = 0
+               textLabel.TextSize = 14
+               textLabel.Font = Enum.Font.SourceSansBold
+               
+               bg.Parent = espFolder
+            end
+            
+            bg.Adornee = head
+            if bg:FindFirstChild("Info") then
+               bg.Info.Text = string.format("[%s]\nHP: %d/%d\nระยะห่าง: %d เมตร", player.Name, math.floor(hum.Health), math.floor(hum.MaxHealth), distance)
+            end
+         else
+            if espFolder:FindFirstChild("ESP_" .. player.Name) then
+               espFolder["ESP_" .. player.Name]:Destroy()
+            end
+         end
+      else
+         if espFolder:FindFirstChild("ESP_" .. player.Name) then
+            espFolder["ESP_" .. pla
